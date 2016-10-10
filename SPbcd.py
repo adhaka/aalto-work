@@ -1,3 +1,4 @@
+
 """  The support Point algorithm implementation in python 
 
 """
@@ -10,6 +11,7 @@ import scipy.stats as stats
 from math import exp, sqrt, pi
 import matplotlib.pyplot as plt 
 import pylab as pl
+import time 
 
 # import seaborn as sns
 
@@ -27,8 +29,9 @@ n = 50
 p = 2
 eps_init = 0.3
 psi = 1.
-tolerance1 = 0.08
+tolerance1 = 0.05
 distribution = 'gaussian'
+# distribution = 'exponential'
 
 
 #  tau ~ U(0,1)
@@ -98,6 +101,15 @@ def calcEnergyHat(y_array, x, Xrest, esp, n=100):
 
 #  calculates ENergy epsilon where X is a vector of points, Y is the posterior samples.
 def calcEnergyEps(X, Y, esp, n=100):
+	'''
+	This function calculates the energy between X and Y
+	the original energy-distance function between X vector and Y vector
+	and which measures the similarity/representability of Y by X.
+	Y- original distribution
+	X- sample distribution
+
+	'''
+
 	N = Y.shape[0]
 	n = X.shape[0]
 	dist1 = np.zeros((n,N))
@@ -121,10 +133,14 @@ def calcEnergyEps(X, Y, esp, n=100):
 
 #  using numerical diff, but could just be anything else actually better,
  # but i dont know how to do it by autodiff/symbolic diff
-
 def calcEnergyGradient(D, Y, eps):
+	'''
+	function to calculate the gradient of Energy function 
+	using numerical differentiation: delE/delx =  (E(x+ delx) - E(x)) / delx 
+	delx = 1e-5
+	'''
 	D_delta = np.copy(D)
-	delta = 0.001
+	delta = 1e-6
 	D_delta = D_delta + delta
 	eng = calcEnergyEps(D, Y, eps)
 	eng_incr = calcEnergyEps(D_delta, Y, eps)
@@ -132,16 +148,19 @@ def calcEnergyGradient(D, Y, eps):
 	return gradient
 	# return 0.0001
 
+
 def Mmstep(x, X_rest, Y, eps):
+	'''
+	This function calculates the update for xi given the rest of x:
+	(x1, x2, x3, x4, .. , xn)
+
+	'''
 	n = X_rest.shape[0]
 	N = Y.shape[0]
-	# p = Y.shape[1]
 	val1 = np.zeros(N)
 	inv_val1 = np.zeros(N)
-
 	y_term = np.zeros((N,p))
 	xdiff = np.zeros((n,p))
-
 	
 	xdiff_sum = 0.
 	y_sum = 0.
@@ -151,12 +170,9 @@ def Mmstep(x, X_rest, Y, eps):
 		inv_val1[i] = 1. / val1[i] 
 		y_term[i] = Y[i] / val1[i]
 
-
 	sum_val1 = np.sum(val1)
 	sum_inv_val1 = np.sum(inv_val1)
 	y_sum = np.sum(y_term, axis=0)
-	# print "y_term:", y_term
-
 
 	for j in range(n):
 		xdiff[j] = (x - X_rest[j]) / calcDistance(x, X_rest[j], eps)
@@ -171,15 +187,16 @@ def Mmstep(x, X_rest, Y, eps):
 	return  x_new
 
 
-
 k = 0
 eps_k = eps_init
 D_iter = np.copy(D)
 counter = 0
 
+start_time = time.time()
+
 #  main algorithm body. 
 while calcEnergyGradient(D_iter, Y, eps_k) < psi*eps_k: 
-	print "energy gradient:", calcEnergyGradient(D_iter, Y, eps_k)
+	# print "energy gradient:", calcEnergyGradient(D_iter, Y, eps_k)
 	for i in range(n):
 		# print "point number:", i
 		x_init = D_iter[i]
@@ -192,25 +209,33 @@ while calcEnergyGradient(D_iter, Y, eps_k) < psi*eps_k:
 		indices = [x for x in range(n) if x != i]
  
 		# using l1 norm for convergence in the case where p is 1.
-		while np.linalg.norm(x_new - x_old) > 0.02  or l == 0:
-			print "number of iters innner loop:", l
-			print "x old:", x_old
-			print "x new:", x_new
+		while np.linalg.norm(x_new - x_old) > 0.01  or l == 0:
+			# print "number of iters innner loop:", l
+			# print "x old:", x_old
+			# print "x new:", x_new
 			old_update = np.linalg.norm(x_new - x_old)
-			print "previous update:", old_update
+			# print "previous update:", old_update
 			x_old = x_new
 			x_new =  Mmstep(x_old, D_iter[indices], Y, eps_k)
 			l = l+1
-			if l ==125:
+			# too many iterations in inside loop
+			if l ==145:
 				continue				
 		
 		D_iter[i] = x_new
 	eps_k = eps_k * tau
 	k = k+1
 
-print "total iters in outer loop:", k
+# print "total iters in outer 1loop:", k
 
-# D_iter = D_iter[:-1,:]
+# find out time taken for execution ..
+end_time = time.time()
+time_taken = end_time - start_time
+print "time taken for algorithm in seconds:", time_taken
+
+
+
+# plotting for 2-D disribution
 if p == 2:
 	D1 = D_iter[:,0]
 	D2 = D_iter[:,1]
@@ -218,8 +243,8 @@ if p == 2:
 	D_old_2 = D[:,1]
 
 
-print "old D:", D
-print "new D:", D_iter
+# print "old D:", D
+# print "new D:", D_iter
 
 
 ####################################################
@@ -243,5 +268,6 @@ plt.legend([blue_points, red_points, green_points], ["Posterior", "SupportPts", 
 
 # plt.legend([red_cross, green_cross], [ "SupportPts", 'Init'])
 
-plt.savefig('normal-2-dim-SP-1-5000-new.pdf')
-# plt.show()  
+plt.savefig('exponential-SP-1-5000-50-timer.pdf')
+
+# plt.show()
