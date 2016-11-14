@@ -24,12 +24,12 @@ mu = 0.0
 sigma = 1.
 
 # setting parameters 
-N = 5000
+N = 10000
 n = 50
 p = 2
 eps_init = 0.3
 psi = 1.
-tolerance1 = 0.05
+tolerance1 = 0.02
 distribution = 'gaussian'
 # distribution = 'exponential'
 
@@ -268,6 +268,6 @@ plt.legend([blue_points, red_points, green_points], ["Posterior", "SupportPts", 
 
 # plt.legend([red_cross, green_cross], [ "SupportPts", 'Init'])
 
-plt.savefig('exponential-SP-1-5000-50-timer.pdf')
+plt.savefig('gaussian-SP-1-10000-50-timer.pdf')
 
 # plt.show()
